@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 interface SalesPageData {
@@ -17,6 +18,7 @@ interface SalesPageData {
 export default function PreviewClient({ page }: { page: any }) {
   const router = useRouter();
   const data = page.output_data as SalesPageData;
+  const [regenerating, setRegenerating] = useState(false);
 
   function handleExport() {
     const blob = new Blob([generateScript(data, page.title)], {
@@ -28,6 +30,26 @@ export default function PreviewClient({ page }: { page: any }) {
     a.download = `${page.title}-sales-page.txt`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  async function handleRegenerate() {
+    setRegenerating(true);
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(page.input_data),
+      });
+
+      if (!res.ok) throw new Error("Failed");
+
+      const { id } = await res.json();
+      router.push(`/dashboard/preview/${id}`);
+    } catch {
+      alert("Regeneration failed. Please try again.");
+    } finally {
+      setRegenerating(false);
+    }
   }
 
   return (
@@ -73,26 +95,76 @@ export default function PreviewClient({ page }: { page: any }) {
             {page.title}
           </h1>
         </div>
-        <button
-          onClick={handleExport}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "8px 16px",
-            background: "var(--accent)",
-            border: "none",
-            borderRadius: "8px",
-            color: "white",
-            fontSize: "13px",
-            fontWeight: 500,
-            cursor: "pointer",
-            fontFamily: "inherit",
-          }}
-        >
-          ↓ Export as .txt
-        </button>
+
+        {/* Action buttons */}
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <button
+            onClick={handleRegenerate}
+            disabled={regenerating}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "8px 16px",
+              background: regenerating
+                ? "rgba(255,255,255,0.04)"
+                : "rgba(255,255,255,0.08)",
+              border: "1px solid var(--glass-border)",
+              borderRadius: "8px",
+              color: regenerating
+                ? "var(--text-tertiary)"
+                : "var(--text-primary)",
+              fontSize: "13px",
+              fontWeight: 500,
+              cursor: regenerating ? "not-allowed" : "pointer",
+              fontFamily: "inherit",
+              transition: "all 0.15s ease",
+            }}
+          >
+            {regenerating ? (
+              <>
+                <span
+                  style={{
+                    display: "inline-block",
+                    width: "12px",
+                    height: "12px",
+                    border: "2px solid var(--text-tertiary)",
+                    borderTopColor: "transparent",
+                    borderRadius: "50%",
+                    animation: "spin 0.7s linear infinite",
+                  }}
+                />
+                Regenerating...
+              </>
+            ) : (
+              "↺ Regenerate"
+            )}
+          </button>
+
+          <button
+            onClick={handleExport}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "8px 16px",
+              background: "var(--accent)",
+              border: "none",
+              borderRadius: "8px",
+              color: "white",
+              fontSize: "13px",
+              fontWeight: 500,
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            ↓ Export as .txt
+          </button>
+        </div>
       </div>
+
+      {/* Spinner keyframe — injected once */}
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* Sales Page Preview */}
       <div
@@ -101,6 +173,9 @@ export default function PreviewClient({ page }: { page: any }) {
           borderRadius: "16px",
           overflow: "hidden",
           color: "#1a1a1a",
+          opacity: regenerating ? 0.5 : 1,
+          transition: "opacity 0.2s ease",
+          pointerEvents: regenerating ? "none" : "auto",
         }}
       >
         {/* Hero */}
