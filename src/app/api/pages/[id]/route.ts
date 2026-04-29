@@ -4,8 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -14,7 +16,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   await prisma.generatedPage.deleteMany({
-    where: { id: params.id, user_id: user.id },
+    where: { id, user_id: user.id },
   });
 
   return NextResponse.json({ success: true });
