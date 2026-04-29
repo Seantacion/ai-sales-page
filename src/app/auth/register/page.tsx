@@ -5,15 +5,115 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+function validate(email: string, password: string, confirmPassword: string) {
+  if (!email) return "Email is required.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Invalid email format.";
+  if (!password) return "Password is required.";
+  if (password.length < 8) return "Password must be at least 8 characters.";
+  if (!/[A-Z]/.test(password))
+    return "Password must contain at least 1 uppercase letter.";
+  if (!/[0-9]/.test(password))
+    return "Password must contain at least 1 number.";
+  if (!confirmPassword) return "Please confirm your password.";
+  if (password !== confirmPassword) return "Passwords do not match.";
+  return null;
+}
+
+function PasswordStrength({ password }: { password: string }) {
+  if (!password) return null;
+
+  const checks = [
+    { label: "Min. 8 characters", pass: password.length >= 8 },
+    { label: "Uppercase letter", pass: /[A-Z]/.test(password) },
+    { label: "Number", pass: /[0-9]/.test(password) },
+  ];
+
+  const score = checks.filter((c) => c.pass).length;
+  const strengthLabel = ["Weak", "Medium", "Strong"][score - 1] ?? "Weak";
+  const strengthColor =
+    score === 3
+      ? "rgba(52,199,89,0.9)"
+      : score === 2
+        ? "rgba(255,159,10,0.9)"
+        : "rgba(255,69,58,0.9)";
+
+  return (
+    <div style={{ marginTop: "10px" }}>
+      {/* Bar */}
+      <div
+        style={{
+          display: "flex",
+          gap: "4px",
+          marginBottom: "8px",
+        }}
+      >
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            style={{
+              flex: 1,
+              height: "3px",
+              borderRadius: "99px",
+              background: i < score ? strengthColor : "rgba(255,255,255,0.08)",
+              transition: "background 0.3s ease",
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Checklist */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+        {checks.map((c) => (
+          <div
+            key={c.label}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "12px",
+              color: c.pass ? "rgba(52,199,89,0.9)" : "var(--text-tertiary)",
+              transition: "color 0.2s",
+            }}
+          >
+            <span style={{ fontSize: "10px" }}>{c.pass ? "✓" : "○"}</span>
+            {c.label}
+          </div>
+        ))}
+      </div>
+
+      <div
+        style={{
+          marginTop: "6px",
+          fontSize: "11px",
+          color: strengthColor,
+          fontWeight: 600,
+          letterSpacing: "0.05em",
+          textTransform: "uppercase",
+          transition: "color 0.3s",
+        }}
+      >
+        Strength: {strengthLabel}
+      </div>
+    </div>
+  );
+}
+
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
   async function handleRegister() {
+    const validationError = validate(email, password, confirmPassword);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setLoading(true);
     setError("");
     const { error } = await supabase.auth.signUp({ email, password });
@@ -25,6 +125,9 @@ export default function RegisterPage() {
     router.push("/dashboard");
     router.refresh();
   }
+
+  const confirmMismatch =
+    confirmPassword.length > 0 && password !== confirmPassword;
 
   return (
     <div
@@ -132,7 +235,7 @@ export default function RegisterPage() {
             color: "var(--text-tertiary)",
           }}
         >
-          © 2025 SalesAI
+          © 2026 by Sena
         </p>
       </div>
 
@@ -187,6 +290,7 @@ export default function RegisterPage() {
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          {/* Email */}
           <div>
             <label
               style={{
@@ -211,6 +315,7 @@ export default function RegisterPage() {
             />
           </div>
 
+          {/* Password */}
           <div>
             <label
               style={{
@@ -233,6 +338,62 @@ export default function RegisterPage() {
               placeholder="••••••••"
               onKeyDown={(e) => e.key === "Enter" && handleRegister()}
             />
+            <PasswordStrength password={password} />
+          </div>
+
+          {/* Confirm Password */}
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: "12px",
+                fontWeight: 600,
+                color: "var(--text-secondary)",
+                marginBottom: "10px",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+              }}
+            >
+              Confirm Password
+            </label>
+            <input
+              className="input-base"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="••••••••"
+              onKeyDown={(e) => e.key === "Enter" && handleRegister()}
+              style={{
+                borderColor: confirmMismatch
+                  ? "rgba(255,69,58,0.5)"
+                  : undefined,
+                outline: confirmMismatch
+                  ? "1px solid rgba(255,69,58,0.3)"
+                  : undefined,
+              }}
+            />
+            {confirmMismatch && (
+              <p
+                style={{
+                  marginTop: "8px",
+                  fontSize: "12px",
+                  color: "var(--danger)",
+                }}
+              >
+                Password does not match
+              </p>
+            )}
+            {!confirmMismatch && confirmPassword.length > 0 && (
+              <p
+                style={{
+                  marginTop: "8px",
+                  fontSize: "12px",
+                  color: "rgba(52,199,89,0.9)",
+                }}
+              >
+                ✓ Passwords match
+              </p>
+            )}
           </div>
 
           <button

@@ -104,7 +104,7 @@ export default function Sidebar({ userEmail }: { userEmail: string }) {
               color: "var(--text-primary)",
             }}
           >
-            SalesAI
+            by Sena
           </span>
         </div>
 

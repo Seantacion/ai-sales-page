@@ -147,7 +147,7 @@ export default function LoginPage() {
         {/* Bottom tag */}
         <div style={{ position: "relative", zIndex: 1 }}>
           <p style={{ fontSize: "13px", color: "var(--text-tertiary)" }}>
-            © 2026 SalesAI
+            © 2026 by Sena
           </p>
         </div>
       </div>
