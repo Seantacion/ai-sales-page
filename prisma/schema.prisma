@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model GeneratedPage {
+  id          String   @id @default(uuid())
+  user_id     String
+  title       String
+  input_data  Json
+  output_data Json
+  created_at  DateTime @default(now())
+
+  @@index([user_id])
+}
+
